@@ -30,11 +30,11 @@ public class CardValidator {
 
     private void validateCardNumber(String cardNumber) {
         if (cardNumber.isEmpty())
-            throw new InvalidCardNumberException("Номер карты обязателен к вводу.");
+            throw new InvalidCardNumberException("Card number must be entered.");
         if (!cardNumber.matches(CARD_NUMBER_REGEXP))
-            throw new InvalidCardNumberException("Номер карты должен состоять из 16 цифр.");
+            throw new InvalidCardNumberException("Card number must consist of 16 digits.");
         if (!checkCardNumberByLuhn(cardNumber))
-            throw new InvalidCardNumberException("Введен несуществующий номер карты.");
+            throw new InvalidCardNumberException("Non-existent card number has been entered.");
     }
 
     private boolean checkCardNumberByLuhn(String cardNumber) {
@@ -56,8 +56,8 @@ public class CardValidator {
 
     private void validateExpireDate(String expiryDate) {
         if (expiryDate.isEmpty())
-            throw new ValidationException("Срок истечения карты обязателен к вводу.");
+            throw new ValidationException("Expiration date is required to be entered.");
         if (!expiryDate.matches(EXPIRY_DATE_REGEXP))
-            throw new ValidationException("Срок истечения карты должен быть в формате ММ/гг.");
+            throw new ValidationException("Expiration date must be in MM/yy format.");
     }
 }
