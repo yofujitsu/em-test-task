@@ -28,6 +28,12 @@ public class CustomUserDetails implements UserDetails {
     private String password;
     private UserRole userRole;
 
+    /**
+     * Метод получения пользовательских данных
+     *
+     * @param user объект пользователя
+     * @return объект {@link CustomUserDetails}
+     */
     public static CustomUserDetails getUser(User user) {
         return new CustomUserDetails(
                 user.getId(),

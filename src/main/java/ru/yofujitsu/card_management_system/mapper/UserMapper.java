@@ -11,6 +11,12 @@ public class UserMapper {
 
     private final CardMapper cardMapper;
 
+    /**
+     * Метод конвертации сущности пользователя в dto
+     *
+     * @param user сущность пользователя
+     * @return dto {@link UserDto}
+     */
     public UserDto toUserDto(User user) {
         return new UserDto(
                 user.getId(),

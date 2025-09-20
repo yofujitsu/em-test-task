@@ -25,6 +25,12 @@ public class JwtUtil {
         this.expiration = expiration;
     }
 
+    /**
+     * Метод генерации jwt-токена
+     *
+     * @param authentication spring-контекст аутентификации
+     * @return токен в виде строки
+     */
     public String generateToken(Authentication authentication) {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
@@ -37,6 +43,12 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * Метод извлечения subject (username) из jwt-токена
+     *
+     * @param token токен в виде строки
+     * @return username
+     */
     public String parseUsername(String token) {
         return Jwts.parser()
                 .verifyWith(key)

@@ -17,11 +17,11 @@ import ru.yofujitsu.card_management_system.entity.card_block_request.CardBlockRe
 import ru.yofujitsu.card_management_system.entity.card_block_request.CardBlockRequestStatus;
 import ru.yofujitsu.card_management_system.exception.CardBlockRequestNotFoundException;
 import ru.yofujitsu.card_management_system.exception.CardNotFoundException;
-import ru.yofujitsu.card_management_system.exception.InactiveStatusException;
-import ru.yofujitsu.card_management_system.exception.InvalidTransferAmountException;
+import ru.yofujitsu.card_management_system.exception.MoneyTransferException;
 import ru.yofujitsu.card_management_system.mapper.CardMapper;
 import ru.yofujitsu.card_management_system.repository.CardBlockRequestRepository;
 import ru.yofujitsu.card_management_system.repository.CardRepository;
+import ru.yofujitsu.card_management_system.service.specification.CardSpecification;
 import ru.yofujitsu.card_management_system.util.CardUtils;
 import ru.yofujitsu.card_management_system.util.CardValidator;
 
@@ -40,6 +40,13 @@ public class CardService {
     private final CardBlockRequestRepository cardBlockRequestRepository;
     private final UserService userService;
 
+    /**
+     * Метод создания новой карты
+     * Используется администратором
+     *
+     * @param cardCreateDto дто с данными карты
+     * @param username юзернейм пользователя
+     */
     public void addNewCard(CardCreateDto cardCreateDto, String username) {
         cardValidator.validateCard(cardCreateDto.cardNumber(), cardCreateDto.expiryDate());
 
@@ -60,14 +67,38 @@ public class CardService {
                 username);
     }
 
+    /**
+     * Метод получения всех карт конкретного пользователя
+     *
+     * @param username юзернейм пользователя
+     * @param pageable объект пагинации
+     * @return страница дто объектов {@link CardDto}
+     */
+    @Transactional(readOnly = true)
     public Page<CardDto> getUserCards(String username, Pageable pageable) {
         return cardRepository.findAllByUser(userService.getUserByUsername(username), pageable).map(cardMapper::toCardDto);
     }
 
+    /**
+     * Метод получения всех карт системы
+     * Используется администратором
+     *
+     * @param pageable объект пагинации
+     * @return страница дто объектов {@link CardDto}
+     */
+    @Transactional(readOnly = true)
     public Page<CardDto> getAllCards(Pageable pageable) {
         return cardRepository.findAll(pageable).map(cardMapper::toCardDto);
     }
 
+    /**
+     * Метод поиска карт конкретного пользователя
+     * Доступен поиск по номеру, владельцу и статусу
+     *
+     * @param pageable объект пагинации
+     * @return страница дто объектов {@link CardDto}
+     */
+    @Transactional(readOnly = true)
     public Page<CardDto> searchCards(String username, String cardNumber, String cardHolder, CardStatus status, Pageable pageable) {
         Specification<Card> spec = CardSpecification.hasUsername(username)
                 .and(CardSpecification.hasCardNumberLike(cardNumber))
@@ -77,6 +108,12 @@ public class CardService {
         return cardRepository.findAll(spec, pageable).map(cardMapper::toCardDto);
     }
 
+    /**
+     * Метод удаления карты из системы
+     * Используется администратором
+     *
+     * @param cardId идентификатор карты
+     */
     public void deleteCard(UUID cardId) {
         Card card = cardRepository.findById(cardId).orElseThrow(() ->
                 new CardNotFoundException("Card not found with id %s".formatted(cardId)));
@@ -85,33 +122,50 @@ public class CardService {
                 card.getUser().getUsername(), card.getCardNumber());
     }
 
+    /**
+     * Метод реализации денежного перевода между 2 картами
+     *
+     * @param username юзернейм пользвателя
+     * @param moneyTransferDto дто объект, содержаций id карт (откуда и куда совершать перевод) и сумму перевода
+     */
     @Transactional
     public void makeMoneyTransfer(String username, MoneyTransferDto moneyTransferDto) {
-        Card from = cardRepository.findByCardNumberAndUser(moneyTransferDto.fromCardNumber(),
-                userService.getUserByUsername(username));
-        Card to = cardRepository.findByCardNumberAndUser(moneyTransferDto.toCardNumber(),
-                userService.getUserByUsername(username));
+        Card from = cardRepository.findById(moneyTransferDto.fromCardId()).orElseThrow(
+                () -> new CardNotFoundException("Card not found with id %s".formatted(moneyTransferDto.fromCardId()))
+        );
+        Card to = cardRepository.findById(moneyTransferDto.toCardId()).orElseThrow(
+                () -> new CardNotFoundException("Card not found with id %s".formatted(moneyTransferDto.toCardId()))
+        );
 
         if (from.equals(to))
-            throw new RuntimeException("From and To are the same");
+            throw new MoneyTransferException("From and To cards are the same");
+
+        if (!from.getUser().getUsername().equals(to.getUser().getUsername()) ||
+                !from.getUser().getUsername().equals(username))
+            throw new MoneyTransferException("Only current user's cards can be used in transfer");
 
         if (from.getStatus() != CardStatus.ACTIVE || to.getStatus() != CardStatus.ACTIVE)
-            throw new InactiveStatusException("Both cards must be active");
+            throw new MoneyTransferException("Both cards must be active");
 
         if (from.getBalance() < moneyTransferDto.amount())
-            throw new InvalidTransferAmountException("Not enough money to transfer from card %s"
-                    .formatted(cardUtils.maskCardNumber(moneyTransferDto.fromCardNumber())));
+            throw new MoneyTransferException("Not enough money to transfer from card %s"
+                    .formatted(cardUtils.maskCardNumber(from.getCardNumber())));
 
         from.setBalance(from.getBalance() - moneyTransferDto.amount());
         to.setBalance(to.getBalance() + moneyTransferDto.amount());
         cardRepository.saveAll(List.of(from, to));
 
         log.info("Money transfer from card: {} to card: {} done by user with username: {} with amount of {}",
-                cardUtils.maskCardNumber(moneyTransferDto.fromCardNumber()),
-                cardUtils.maskCardNumber(moneyTransferDto.toCardNumber()),
+                cardUtils.maskCardNumber(from.getCardNumber()),
+                cardUtils.maskCardNumber(to.getCardNumber()),
                 username, moneyTransferDto.amount());
     }
 
+    /**
+     * Метод создания запроса на блокировку карты
+     *
+     * @param cardBlockRequestDto дто объект, содержащий id карты и username пользователя
+     */
     public void createCardBlockRequest(CardBlockRequestDto cardBlockRequestDto) {
         CardBlockRequest cardBlockRequest = new CardBlockRequest();
         cardBlockRequest.setCardId(cardBlockRequestDto.cardId());
@@ -126,6 +180,13 @@ public class CardService {
                 cardUtils.maskCardNumber(card.getCardNumber()), cardBlockRequestDto.username());
     }
 
+    /**
+     * Метод блокировки карты
+     * Помимо самой блокировки изменяется статус у заявки на RESOLVED
+     * Используется администратором
+     *
+     * @param requestId идентификатор запроса на блокировку
+     */
     @Transactional
     public void blockCard(UUID requestId) {
         CardBlockRequest cardBlockRequest = cardBlockRequestRepository.findById(requestId)
@@ -135,7 +196,6 @@ public class CardService {
         Card card = cardRepository.findById(cardBlockRequest.getCardId())
                 .orElseThrow(() -> new CardNotFoundException("Card not found with id %s"
                         .formatted(cardBlockRequest.getCardId())));
-
 
         card.setStatus(CardStatus.BLOCKED);
         cardRepository.save(card);
@@ -147,11 +207,31 @@ public class CardService {
                 cardBlockRequest.getUsername(), cardUtils.maskCardNumber(card.getCardNumber()));
     }
 
-    public void unblockCard(String cardNumber, String username) {
-        Card card = cardRepository.findByCardNumberAndUser(cardNumber, userService.getUserByUsername(username));
+    /**
+     * Метод разблокировки карты
+     * Используется администратором
+     *
+     * @param cardId идентификатор карты
+     */
+    public void unblockCard(UUID cardId) {
+        Card card = cardRepository.findById(cardId).orElseThrow(() -> new CardNotFoundException("Card not found with id %s"
+                .formatted(cardId)));
+
         card.setStatus(CardStatus.ACTIVE);
         cardRepository.save(card);
-        log.info("User's {} card {} activated",
-                username, cardUtils.maskCardNumber(cardNumber));
+
+        log.info("Card {} activated", cardId);
+    }
+
+    /**
+     * Метод получения всех запросов на блокировку карт в системе
+     * Используется администратором
+     *
+     * @param pageable объект пагинации
+     * @return страница дто объектов {@link CardBlockRequestDto}
+     */
+    @Transactional(readOnly = true)
+    public Page<CardBlockRequest> getAllCardBlockRequests(Pageable pageable) {
+        return cardBlockRequestRepository.findAll(pageable);
     }
 }

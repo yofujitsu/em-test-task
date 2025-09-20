@@ -15,6 +15,9 @@ public class AdminConfig {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Метод инициализации пользователя-администратора в БД
+     */
     @PostConstruct
     public void initAdminUser() {
         userRepository.findByUsername("admin").ifPresentOrElse(

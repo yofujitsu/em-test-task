@@ -21,6 +21,13 @@ public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Метод аутентификации пользователя
+     *
+     * @param username юзернейм пользователя
+     * @param password зашифрованный пароль
+     * @return сформированный jwt-токен в виде строки
+     */
     public ResponseTokenDto authenticate(String username, String password) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password)
@@ -30,12 +37,19 @@ public class AuthService {
         return new ResponseTokenDto(jwt);
     }
 
+    /**
+     * Метод, обрабатывающий регистрацию пользователя
+     * Проводит первичную валидацию уникальных полей
+     * Затем создает пользователя в БД
+     *
+     * @param signUpRequestDto дто объект с регистрационными данными пользователя {@link SignUpRequestDto}
+     */
     public void handleSignUp(SignUpRequestDto signUpRequestDto) {
         if (userService.existsByUsername(signUpRequestDto.username()))
-            throw new BadCredentialsException("Username is already in use");
+            throw new BadCredentialsException("Username %s is already in use".formatted(signUpRequestDto.username()));
 
         if (userService.existsByEmail(signUpRequestDto.email()))
-            throw new BadCredentialsException("Email is already in use");
+            throw new BadCredentialsException("Email %s is already in use".formatted(signUpRequestDto.email()));
 
         userService.createUser(signUpRequestDto.username(), signUpRequestDto.email(), passwordEncoder.encode(signUpRequestDto.password()));
     }

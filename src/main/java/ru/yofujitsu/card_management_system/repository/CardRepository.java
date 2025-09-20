@@ -13,6 +13,4 @@ import java.util.UUID;
 @Repository
 public interface CardRepository extends JpaRepository<Card, UUID>, JpaSpecificationExecutor<Card> {
     Page<Card> findAllByUser(User user, Pageable pageable);
-
-    Card findByCardNumberAndUser(String cardNumber, User user);
 }

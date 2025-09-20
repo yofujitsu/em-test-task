@@ -2,6 +2,7 @@ package ru.yofujitsu.card_management_system.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
@@ -21,7 +22,8 @@ public class OpenApiConfig {
                 .servers(List.of(
                         new Server().url("http://localhost:8080")
                                 .description("localhost server")
-                ));
+                ))
+                .info(new Info().title("Cards Management System API").version("v1"));
     }
 
     private SecurityScheme createAPIKeyScheme() {

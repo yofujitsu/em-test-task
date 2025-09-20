@@ -1,26 +1,35 @@
 package ru.yofujitsu.card_management_system.util;
 
 import jakarta.validation.ValidationException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import ru.yofujitsu.card_management_system.exception.InvalidCardNumberException;
 
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 
 @Component
-@RequiredArgsConstructor
 public class CardValidator {
 
     private static final String EXPIRY_DATE_REGEXP = "^(0[1-9]|1[0-2])/\\d{2}$";
     private static final String CARD_NUMBER_REGEXP = "^[0-9]{16}$";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("MM/yy");
 
+    /**
+     * Общий метод валидации номера и срока действия карты
+     *
+     * @param cardNumber введенный номер карты
+     * @param expiryDate введенный срок действия карты
+     */
     public void validateCard(String cardNumber, String expiryDate) {
         validateCardNumber(cardNumber);
         validateExpireDate(expiryDate);
     }
 
+    /**
+     * Проверка срока действия карты
+     *
+     * @param expiryDate введенный срок действия карты
+     * @return true/false - карта истекла/не истекла
+     */
     public boolean isCardExpired(String expiryDate) {
         YearMonth yearMonth = YearMonth.parse(expiryDate, FORMATTER);
         YearMonth now = YearMonth.now();
@@ -28,15 +37,26 @@ public class CardValidator {
         return yearMonth.isBefore(now);
     }
 
+    /**
+     * Метод валидации номера карты
+     *
+     * @param cardNumber введенный номер карты
+     */
     private void validateCardNumber(String cardNumber) {
         if (cardNumber.isEmpty())
-            throw new InvalidCardNumberException("Card number must be entered.");
+            throw new ValidationException("Card number must be entered.");
         if (!cardNumber.matches(CARD_NUMBER_REGEXP))
-            throw new InvalidCardNumberException("Card number must consist of 16 digits.");
+            throw new ValidationException("Card number must consist of 16 digits.");
         if (!checkCardNumberByLuhn(cardNumber))
-            throw new InvalidCardNumberException("Non-existent card number has been entered.");
+            throw new ValidationException("Non-existent card number has been entered.");
     }
 
+    /**
+     * Проверка номера карты на соответствие алгоритму Луна
+     *
+     * @param cardNumber номер карты
+     * @return true/false - соответствует/не соответствует
+     */
     private boolean checkCardNumberByLuhn(String cardNumber) {
         int sum = 0;
         boolean alt = false;
@@ -54,6 +74,11 @@ public class CardValidator {
         return (sum % 10 == 0);
     }
 
+    /**
+     * Метод валидации срока действия карты
+     *
+     * @param expiryDate введенный срок действия карты
+     */
     private void validateExpireDate(String expiryDate) {
         if (expiryDate.isEmpty())
             throw new ValidationException("Expiration date is required to be entered.");

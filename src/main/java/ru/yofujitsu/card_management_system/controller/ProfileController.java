@@ -1,5 +1,6 @@
 package ru.yofujitsu.card_management_system.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,7 +12,7 @@ import java.security.Principal;
 
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "Profile Controller")
+@Tag(name = "Profile Controller", description = "Endpoint for current user's data")
 @RequestMapping("/api/v1/users")
 public class ProfileController {
 
@@ -19,8 +20,8 @@ public class ProfileController {
 
     @GetMapping("/profile")
     @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get current user's data")
     public UserDto getCurrentUser(Principal principal) {
         return userService.getUserDtoByUsername(principal.getName());
     }
-
 }
