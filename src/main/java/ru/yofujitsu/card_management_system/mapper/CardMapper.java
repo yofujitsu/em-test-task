@@ -3,7 +3,6 @@ package ru.yofujitsu.card_management_system.mapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.yofujitsu.card_management_system.dto.card.CardDto;
-import ru.yofujitsu.card_management_system.dto.user.UserDto;
 import ru.yofujitsu.card_management_system.entity.card.Card;
 import ru.yofujitsu.card_management_system.util.CardUtils;
 
