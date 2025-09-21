@@ -1,0 +1,5 @@
+databaseChangeLog:
+  - include:
+      file: db/migration/changeset/001_card-management-system_init.sql
+  - include:
+      file: db/migration/changeset/002_card-management-system_add_block_requests.sql

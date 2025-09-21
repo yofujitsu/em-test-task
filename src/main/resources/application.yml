@@ -1,3 +1,21 @@
 spring:
   application:
     name: card-management-system
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
+    url: jdbc:postgresql://localhost:5432/cmsdb
+  jpa:
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  liquibase:
+    change-log: classpath:/db/migration/db.changelog-master.yaml
+
+jwt:
+  secret: 18ghd34587urief41238879wwer2480iehf29wjs9w0ox12
+  expiration: 600000
